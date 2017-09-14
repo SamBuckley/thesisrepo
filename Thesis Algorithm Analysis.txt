@@ -1,0 +1,104 @@
+
+Solution based on ordering courses by number of dependencies. This algorithm requires courses that 
+are required to be done later on in the course yet have no prerequisited be marked accordingly 
+so they don't show up in semester 1.
+
+This algorithm should be combined with the default order in which to do courses recommended by UQ
+so that students don't have hugely varying schedules with what UQ recommends.
+
+This algorithm would work with electives provided they are given as part of the course list.
+
+Use a sorting algorithm to sort the courses:
+based on the size of the list of courses they are required to take - O(n log n) using a good algorithm
+based on the recommended order to take them
+taking into account courses limited to year 4 such as the thesis
+based on the size of the list of courses they are required to take recursively - probably best option
+
+	resultLists = empty - an array of lists containing each semester
+	skip = false
+	courseAdded = false
+	semester = 0
+	dud = 0
+
+	while !orderedList is empty:
+		//Fill semester until full or nothing fits
+		while size(resultLists[semester]) < 4:
+			courseAdded = false
+			for c in courseList:
+			
+				skip = false
+				
+				if c is in result list:
+					skip = true
+					// course already allocated
+					
+				for d in c's prereqs:
+					if d is not in the resultList yet:
+						skip = true
+						//Can't allocate course yet as prereqs are not completed
+						
+				if c is not offered in this semester:
+					skip = true
+					
+				if skip is false:
+					add c to resultLists[semester]
+					courseAdded = true
+					if size(resultLists[semester]) is 4:
+						//semester full
+						break loop
+			//course allocation complete for this semester
+			for c in orderedList:
+				if c in resultList:
+					remove c from orderedList
+			if courseAdded is false:	
+				// no courses could be added so move on
+				break
+		if size(resultLists[semester]) is 0
+			// dud semester, this can happen once, but twice consecutively is bad news
+			increment dud
+			if dud is 2:
+				break
+		else
+			dud = 0
+		increment semester
+	
+	
+Analysis:
+
+Initially a list of courses is sorted based on the number of courses in the course list, this means only ones the student is planning to take, that require said course to be taken.
+This could be done using any standard sorting algorithm and is assumed to take O(nlog n) time where n is the number of courses in the course list, assuming also that getting the length of a list is a constant operation.
+The ordered list is preserved, so when the algorithm iterates over them, it prioritises this condition for getting into the 4 slots each semester. It doesn't, however, consider these recursively ie if a course that is 
+required to take many subjects requires a course that only enables the former course, it will have to wait until the latter course is considered far later.
+
+
+For the final big loop, the outer while is likely to iterate around n/4 times where n is the size of the course list, although this could be a bit higher if courses don't fit nicely into semesters. Since we always
+focus on worst case, the absoloute worst case is adding 1 course a semester for all but one course, then failing twice to make it n + 1 iterations which is still O(n).
+The second loop iterates up to 4 times, the worst case being 1 course added each time. The final loop could be up to n - 1 times, if c was a pre-req to all other courses.
+So the big loop is around O(n^2), added to the O(n logn) of the sorting makes the whole algorithm O(n^2 + nlog n).
+
+Most of the problems ive been dreading facing for this problem is getting information off of the course website and interpreting the html etc. If the list of courses and joins, as well as the recommended order to
+take them in are given, then this algorithm is all that's required to order the courses in a compatible way. Each list of courses in the results array represents a semester.
+
+
+Perhaps a nicer way of ordering the courses could be done by stepping through the requirements to get a final value that is "courses taken before this one" by adding the values up the requirements. This would have to be
+done recursively, but should provide a more correct solution than the above algorithm:
+
+	...
+	for course c in courselist:
+		if c.reqs is not defined:
+			skip
+		else:
+			c.reqs = countReqs(c)
+	...
+
+	list countReqs(course c)
+		if c.prereqs empty:
+			c.reqs = empty list
+			return c.reqs
+		else 
+			for course d in c.prereqs:
+				add all of countReqs(d) to c.reqs
+			return c.reqs
+			
+This algorithm makes a better requirements list in that it contains requirements of requirements for each course. It would be good now to order the courses based on the amount of times they show up in these lists 
+as now courses that are required for courses that open many others will now have an even larger list and this should optimally order the classes.
