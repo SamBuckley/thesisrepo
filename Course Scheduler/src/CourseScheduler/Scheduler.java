@@ -1,0 +1,209 @@
+package CourseScheduler;
+
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.*;
+
+public class Scheduler {
+	
+	public static void main(String args[]) {
+		
+		List<Course> courseList = new ArrayList<Course>();
+		Comparator<Course> comparator = new ReqComparator();
+		
+		int requiredUnits = 0;
+		int i;
+		
+		//Input course and program data from file
+		
+		Path file = Paths.get(System.getProperty("user.home"), "input", "input.txt");
+		try (InputStream in = Files.newInputStream(file);
+		    BufferedReader reader =
+		      new BufferedReader(new InputStreamReader(in))) {
+		    String line = null;
+		    String parts[];
+		    while ((line = reader.readLine()) != null) {
+		    	System.out.println(line);
+		        parts = line.split(" ");
+		        Course c = new Course(parts[0], Integer.parseInt(parts[1]), Integer.parseInt(parts[2]), Integer.parseInt(parts[3]), Integer.parseInt(parts[4]));
+		        for (i = 5; i < parts.length; i++) {
+		        	for (Course d: courseList) {
+		        		if (d.getCode().equals(parts[i])) {
+		        			System.out.println("Adding course " + d.toString() + " as a prereq for course " + c.toString());
+		        			c.addPreReq(d);
+		        		}
+		        	}
+		        }
+		        courseList.add(c);
+		    }
+		} catch (IOException x) {
+		    System.err.println(x);
+		}
+		System.out.println("Calculating...");
+		//Calculate lists
+		// Record one level of requirement
+		for (Course c: courseList) {
+			for (Course d: courseList) {
+				if (c.getPreReqs().contains(d)) {
+					System.out.println("Adding course " + d.toString() + " as a requirement for course " + c.toString());
+					d.addReq(c);
+				}
+			}
+		}
+		System.out.println("Recursing...");
+		// Make it recursive
+		for (Course c: courseList) {
+			recReqs(c);
+		}
+		System.out.println("Ordering...");
+		//Order Courses
+		PriorityQueue<Course> orderedList = new PriorityQueue<Course>(20, comparator);
+
+		for (Course c: courseList) {
+			orderedList.add(c);
+		}
+		
+		System.out.println("Scheduling...");
+		// Schedule Courses
+		List<List<Course>> resultLists = new ArrayList<List<Course>>();
+		boolean skip = false;
+		boolean	courseAdded = false;
+		int semester = 0;
+		int dud = 0;
+		
+		List<Course> list = new ArrayList<Course>();
+		resultLists.add(list);
+		resultLists.add(list);
+		
+		while (true) {
+			while(resultLists.get(semester).size() < 4) {
+				courseAdded = false;
+				for (Course c: orderedList) {
+					System.out.println("Attempting to place " + c.toString() + " into semester" + semester);
+					skip = false;
+					
+					if (isInResultLists(resultLists, c) >= 0) {
+						skip = true;
+					}
+					
+					for (Course d: c.getPreReqs()) {
+						if (isInResultLists(resultLists, d) < 0 || isInResultLists(resultLists, d) >= semester) {
+							skip = true;
+						}
+					}
+					
+					if (!c.getSem().contains((semester % 2))) {
+						skip = true;
+					}
+					
+					if (semester < c.getLeastSem()) {
+						skip = true;
+					}
+					
+					if (c.getLength() == 2 && resultLists.get(semester + 1).size() > 3) {
+						skip = true;
+					}
+					
+					if (!skip) {
+						resultLists.get(semester).add(c);
+						courseAdded = true;
+						if (c.getLength() == 2) {
+							resultLists.get(semester + 1).add(c);
+						}
+						if (resultLists.get(semester).size() == 4) {
+							//semester full
+							break;
+						}
+					}
+				}
+				for (Course c: courseList) {
+					if (isInResultLists(resultLists, c) >= 0) {
+						orderedList.remove(c);
+					}
+				}
+				if (!courseAdded) {
+					break;
+				}
+			}
+			if (resultLists.get(semester).size() == 0) {
+				//dud semester, this can happen once, but twice means we're stuck
+				dud++;
+				if (dud == 2) {
+					break;
+				}
+			} else {
+				// reset counter
+				dud = 0;
+			}
+			semester++;
+			list = new ArrayList<Course>();
+			resultLists.add(list);
+		}
+		
+		//Output Results
+		System.out.println("Outputting...");
+		Path outputFile = Paths.get(System.getProperty("user.home"), "output", "output.txt");
+        if (!new File (outputFile.toString()).exists()) {
+        	try {
+        		Files.createFile(outputFile);
+        	} catch (IOException e) {
+        		System.out.println("Could not create output file");
+        		System.exit(1);
+        	}
+        }
+	        
+		try {
+			BufferedWriter out = Files.newBufferedWriter(outputFile);
+			semester = 0;
+			for (List<Course> list2 : resultLists) {
+				out.write("Semester " + (semester + 1) + ":");
+				out.newLine();
+				for (Course c: list2) {
+					out.write("    " + c.toString());
+					out.newLine();
+					out.flush();
+				}
+				semester++;
+			}
+			
+			out.close();
+		} catch (IOException e) {
+			System.out.println("Error outputting");
+			System.exit(2);
+		}
+		
+	}
+	
+	static int isInResultLists(List<List<Course>> lists, Course c) {
+		for (List<Course> list: lists) {
+			for (Course d: list) {
+				if (d.equals(c)) {
+					//System.out.println("Found course " + c.toString() + " in list " + lists.indexOf(list));
+					return lists.indexOf(list);
+				}
+			}
+		}
+		return -1;
+	}
+	
+	static List<Course> recReqs(Course c) {
+		List<Course> reqs = new ArrayList<Course>();
+		
+		if (c.getReqs().isEmpty()) {
+			return reqs;
+		} else {
+			for (Course d: c.getReqs()) {
+				c.addAllReqs(recReqs(d));
+			}
+		}
+		
+		return reqs;
+	}
+}
