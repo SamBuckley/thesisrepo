@@ -23,7 +23,7 @@ public class Scheduler {
 		
 		//Input course and program data from file
 		
-		Path file = Paths.get(System.getProperty("user.home"), "input", "input.txt");
+		Path file = Paths.get(System.getProperty("user.home"), "CourseScheduler", "input.txt");
 		try (InputStream in = Files.newInputStream(file);
 		    BufferedReader reader =
 		      new BufferedReader(new InputStreamReader(in))) {
@@ -80,37 +80,44 @@ public class Scheduler {
 		
 		List<Course> list = new ArrayList<Course>();
 		resultLists.add(list);
+		list = new ArrayList<Course>();
 		resultLists.add(list);
 		
-		while (true) {
+		while (!orderedList.isEmpty()) {
 			while(resultLists.get(semester).size() < 4) {
 				courseAdded = false;
 				for (Course c: orderedList) {
 					System.out.println("Attempting to place " + c.toString() + " into semester" + semester);
 					skip = false;
 					
+					// Check if course already scheduled
 					if (isInResultLists(resultLists, c) >= 0) {
 						skip = true;
 					}
 					
+					// Check that all pre reqs are scheduled before it
 					for (Course d: c.getPreReqs()) {
 						if (isInResultLists(resultLists, d) < 0 || isInResultLists(resultLists, d) >= semester) {
 							skip = true;
 						}
 					}
 					
+					// Check that the course is offered in this semester
 					if (!c.getSem().contains((semester % 2))) {
 						skip = true;
 					}
 					
+					// Check that we're late enough in the program to take this course
 					if (semester < c.getLeastSem()) {
 						skip = true;
 					}
 					
+					// Check if there's space in the next semester (only matter if lots of 2 semester courses)
 					if (c.getLength() == 2 && resultLists.get(semester + 1).size() > 3) {
 						skip = true;
 					}
 					
+					// Schedule the course in this semester if no flags are raised
 					if (!skip) {
 						resultLists.get(semester).add(c);
 						courseAdded = true;
@@ -133,15 +140,16 @@ public class Scheduler {
 				}
 			}
 			if (resultLists.get(semester).size() == 0) {
-				//dud semester, this can happen once, but twice means we're stuck
+				// No courses could fit into this semester, this can happen once, but twice means we're stuck
 				dud++;
 				if (dud == 2) {
-					break;
+					//break;
 				}
 			} else {
-				// reset counter
+				// One empty semester does not a failed attempt make
 				dud = 0;
 			}
+			// Go on to the next semester - create a new future list
 			semester++;
 			list = new ArrayList<Course>();
 			resultLists.add(list);
@@ -149,7 +157,7 @@ public class Scheduler {
 		
 		//Output Results
 		System.out.println("Outputting...");
-		Path outputFile = Paths.get(System.getProperty("user.home"), "output", "output.txt");
+		Path outputFile = Paths.get(System.getProperty("user.home"), "CourseScheduler", "output.txt");
         if (!new File (outputFile.toString()).exists()) {
         	try {
         		Files.createFile(outputFile);
@@ -163,7 +171,11 @@ public class Scheduler {
 			BufferedWriter out = Files.newBufferedWriter(outputFile);
 			semester = 0;
 			for (List<Course> list2 : resultLists) {
-				out.write("Semester " + (semester + 1) + ":");
+				if (semester % 2 == 0) {
+					out.write("Year " + (semester / 2 + 1) + ":");
+					out.newLine();
+				}
+				out.write("Semester " + (semester % 2 + 1) + ":");
 				out.newLine();
 				for (Course c: list2) {
 					out.write("    " + c.toString());
