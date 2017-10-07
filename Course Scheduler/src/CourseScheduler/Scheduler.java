@@ -20,6 +20,7 @@ public class Scheduler {
 		
 		int requiredUnits = 0;
 		int i;
+		int semester = 0;
 		
 		//Input course and program data from file
 		
@@ -29,11 +30,16 @@ public class Scheduler {
 		      new BufferedReader(new InputStreamReader(in))) {
 		    String line = null;
 		    String parts[];
+		    line = reader.readLine();
+		    parts = line.split(" ");
+		    requiredUnits = Integer.parseInt(parts[0]);
+		    semester = Integer.parseInt(parts[1]);
+		    
 		    while ((line = reader.readLine()) != null) {
 		    	System.out.println(line);
 		        parts = line.split(" ");
-		        Course c = new Course(parts[0], Integer.parseInt(parts[1]), Integer.parseInt(parts[2]), Integer.parseInt(parts[3]), Integer.parseInt(parts[4]));
-		        for (i = 5; i < parts.length; i++) {
+		        Course c = new Course(parts[0], Integer.parseInt(parts[1]), Integer.parseInt(parts[2]), Integer.parseInt(parts[3]), Integer.parseInt(parts[4]), Integer.parseInt(parts[5]));
+		        for (i = 6; i < parts.length; i++) {
 		        	for (Course d: courseList) {
 		        		if (d.getCode().equals(parts[i])) {
 		        			System.out.println("Adding course " + d.toString() + " as a prereq for course " + c.toString());
@@ -75,7 +81,6 @@ public class Scheduler {
 		List<List<Course>> resultLists = new ArrayList<List<Course>>();
 		boolean skip = false;
 		boolean	courseAdded = false;
-		int semester = 0;
 		int dud = 0;
 		
 		List<Course> list = new ArrayList<Course>();
@@ -84,7 +89,7 @@ public class Scheduler {
 		resultLists.add(list);
 		
 		while (!orderedList.isEmpty()) {
-			while(resultLists.get(semester).size() < 4) {
+			while(countUnits(resultLists.get(semester)) < 8) {
 				courseAdded = false;
 				for (Course c: orderedList) {
 					System.out.println("Attempting to place " + c.toString() + " into semester" + semester);
@@ -112,8 +117,13 @@ public class Scheduler {
 						skip = true;
 					}
 					
+					// Check there's unit space left
+					if (c.getUnits() > 8 - countUnits(resultLists.get(semester))) {
+						skip = true;
+					}
+					
 					// Check if there's space in the next semester (only matter if lots of 2 semester courses)
-					if (c.getLength() == 2 && resultLists.get(semester + 1).size() > 3) {
+					if (c.getLength() == 2 && countUnits(resultLists.get(semester + 1)) > 6) {
 						skip = true;
 					}
 					
@@ -124,7 +134,7 @@ public class Scheduler {
 						if (c.getLength() == 2) {
 							resultLists.get(semester + 1).add(c);
 						}
-						if (resultLists.get(semester).size() == 4) {
+						if (countUnits(resultLists.get(semester)) == 8) {
 							//semester full
 							break;
 						}
@@ -203,6 +213,14 @@ public class Scheduler {
 			}
 		}
 		return -1;
+	}
+	
+	static int countUnits(List<Course> list) {
+		int result = 0;
+		for (Course c: list) {
+			result += c.getUnits();
+		}
+		return result;
 	}
 	
 	static List<Course> recReqs(Course c) {

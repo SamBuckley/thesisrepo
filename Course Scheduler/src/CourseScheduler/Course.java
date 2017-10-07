@@ -26,7 +26,7 @@ public class Course {
 		this.level = code.charAt(4) - 48;
 	}
 	
-	public Course(String code, int leastSem, int sem1, int sem2, int length) {
+	public Course(String code, int leastSem, int sem1, int sem2, int length, int units) {
 		this.code = code;
 		this.leastSemester = leastSem;
 		if (sem1 == 1) {
