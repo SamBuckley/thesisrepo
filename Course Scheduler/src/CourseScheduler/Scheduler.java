@@ -20,9 +20,13 @@ public class Scheduler {
 		
 		int requiredUnits = 0;
 		int i;
+		int currentSemester = 0;
+		int currentUnits = 0;
 		int semester = 0;
 		
 		//Input course and program data from file
+		
+		//AUTOMATE the crawler making text files
 		
 		Path file = Paths.get(System.getProperty("user.home"), "CourseScheduler", "input.txt");
 		try (InputStream in = Files.newInputStream(file);
@@ -33,12 +37,13 @@ public class Scheduler {
 		    line = reader.readLine();
 		    parts = line.split(" ");
 		    requiredUnits = Integer.parseInt(parts[0]);
-		    semester = Integer.parseInt(parts[1]);
+		    currentUnits = Integer.parseInt(parts[1]);
+		    currentSemester = Integer.parseInt(parts[2]);
 		    
 		    while ((line = reader.readLine()) != null) {
 		    	System.out.println(line);
 		        parts = line.split(" ");
-		        Course c = new Course(parts[0], Integer.parseInt(parts[1]), Integer.parseInt(parts[2]), Integer.parseInt(parts[3]), Integer.parseInt(parts[4]), Integer.parseInt(parts[5]));
+		        Course c = new Course(parts[0], Integer.parseInt(parts[1]) - currentSemester, Integer.parseInt(parts[2]), Integer.parseInt(parts[3]), Integer.parseInt(parts[4]), Integer.parseInt(parts[5]));
 		        for (i = 6; i < parts.length; i++) {
 		        	for (Course d: courseList) {
 		        		if (d.getCode().equals(parts[i])) {
@@ -76,6 +81,8 @@ public class Scheduler {
 			orderedList.add(c);
 		}
 		
+		
+		
 		System.out.println("Scheduling...");
 		// Schedule Courses
 		List<List<Course>> resultLists = new ArrayList<List<Course>>();
@@ -88,7 +95,7 @@ public class Scheduler {
 		list = new ArrayList<Course>();
 		resultLists.add(list);
 		
-		while (!orderedList.isEmpty()) {
+		while (!orderedList.isEmpty() && currentUnits < requiredUnits) {
 			while(countUnits(resultLists.get(semester)) < 8) {
 				courseAdded = false;
 				for (Course c: orderedList) {
@@ -117,8 +124,13 @@ public class Scheduler {
 						skip = true;
 					}
 					
-					// Check there's unit space left
+					// Check there's unit space left in the semester
 					if (c.getUnits() > 8 - countUnits(resultLists.get(semester))) {
+						skip = true;
+					}
+					
+					// Check there's unit space for the course
+					if (currentUnits + c.getUnits() > requiredUnits) {
 						skip = true;
 					}
 					
@@ -131,8 +143,10 @@ public class Scheduler {
 					if (!skip) {
 						resultLists.get(semester).add(c);
 						courseAdded = true;
+						currentUnits += c.getUnits();
 						if (c.getLength() == 2) {
 							resultLists.get(semester + 1).add(c);
+							currentUnits += c.getUnits();
 						}
 						if (countUnits(resultLists.get(semester)) == 8) {
 							//semester full
@@ -163,7 +177,12 @@ public class Scheduler {
 			semester++;
 			list = new ArrayList<Course>();
 			resultLists.add(list);
+			System.out.println("Current allocated units: " + currentUnits);
 		}
+		
+		// Fill empty unit slots with dummy elective courses
+		
+		// Remove extra lists
 		
 		//Output Results
 		System.out.println("Outputting...");
@@ -181,11 +200,11 @@ public class Scheduler {
 			BufferedWriter out = Files.newBufferedWriter(outputFile);
 			semester = 0;
 			for (List<Course> list2 : resultLists) {
-				if (semester % 2 == 0) {
-					out.write("Year " + (semester / 2 + 1) + ":");
+				if (semester % 2 == currentSemester % 2) {
+					out.write("Year " + ((semester + currentSemester) / 2 + 1) + ":");
 					out.newLine();
 				}
-				out.write("Semester " + (semester % 2 + 1) + ":");
+				out.write("Semester " + ((semester + currentSemester) % 2 + 1) + ":");
 				out.newLine();
 				for (Course c: list2) {
 					out.write("    " + c.toString());
