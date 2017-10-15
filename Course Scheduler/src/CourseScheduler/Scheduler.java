@@ -180,10 +180,6 @@ public class Scheduler {
 			System.out.println("Current allocated units: " + currentUnits);
 		}
 		
-		// Fill empty unit slots with dummy elective courses
-		
-		// Remove extra lists
-		
 		//Output Results
 		System.out.println("Outputting...");
 		Path outputFile = Paths.get(System.getProperty("user.home"), "CourseScheduler", "output.txt");
@@ -200,6 +196,11 @@ public class Scheduler {
 			BufferedWriter out = Files.newBufferedWriter(outputFile);
 			semester = 0;
 			for (List<Course> list2 : resultLists) {
+				
+				if (list2.isEmpty()) {
+					continue;
+				}
+				
 				if (semester % 2 == currentSemester % 2) {
 					out.write("Year " + ((semester + currentSemester) / 2 + 1) + ":");
 					out.newLine();
@@ -210,6 +211,19 @@ public class Scheduler {
 					out.write("    " + c.toString());
 					out.newLine();
 					out.flush();
+				}
+				int r = countUnits(list2);
+				int p;
+				if (8 - r < requiredUnits - currentUnits) {
+					p = 8 - r;
+				} else {
+					p = requiredUnits - currentUnits;
+				}
+				if (r < 8 && currentUnits < requiredUnits) {
+					out.write("    Electives - " + p + " Units");
+					out.newLine();
+					out.flush();
+					currentUnits += p;
 				}
 				semester++;
 			}
