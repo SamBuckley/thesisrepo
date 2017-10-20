@@ -19,6 +19,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
+import javax.swing.JFileChooser;
+import javax.swing.JFrame;
+import javax.swing.JOptionPane;
+
 public class Crawler {
 	public static void main(String args[]) {
 		
@@ -28,7 +32,7 @@ public class Crawler {
 		try {
 			
 			// Dialog to input plan code
-			String plan = "PHYSCX2030";
+			String plan = (String)JOptionPane.showInputDialog(new JFrame("Enter a program code"), "Please enter the desired program code.", "Enter a program code", JOptionPane.QUESTION_MESSAGE);
 			
 			System.out.println("Initializing...");
 			URL UQUrl = new URL("https://www.uq.edu.au/study/plan_display.html?acad_plan=" + plan);
@@ -98,7 +102,22 @@ public class Crawler {
 		
 		//Output Results
 		System.out.println("Outputting...");
-		Path outputFile = Paths.get(System.getProperty("user.home"), "CourseScheduler", "crawlerOutput.txt");
+		
+		final JFileChooser fileChooser = new JFileChooser();
+		fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+		
+		int returnVal = fileChooser.showOpenDialog(fileChooser);
+		
+		Path outputFile = Paths.get(System.getProperty("user.home"));
+		
+		if (returnVal == JFileChooser.APPROVE_OPTION) {
+			outputFile = fileChooser.getSelectedFile().toPath();
+			System.out.println(outputFile.toString());
+		} else {
+			System.exit(0);
+		}
+		
+		outputFile = Paths.get(outputFile.toString(), "retrieverOutput.txt");
         if (!new File (outputFile.toString()).exists()) {
         	try {
         		Files.createFile(outputFile);

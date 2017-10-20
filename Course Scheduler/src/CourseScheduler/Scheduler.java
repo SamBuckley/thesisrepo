@@ -11,6 +11,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 
+import javax.swing.JFileChooser;
+
 public class Scheduler {
 	
 	public static void main(String args[]) {
@@ -24,12 +26,20 @@ public class Scheduler {
 		int currentUnits = 0;
 		int semester = 0;
 		
-		//Input course and program data from file
+		final JFileChooser fileChooser = new JFileChooser();
 		
-		//AUTOMATE the crawler making text files
+		int returnVal = fileChooser.showOpenDialog(fileChooser);
 		
-		Path file = Paths.get(System.getProperty("user.home"), "CourseScheduler", "input.txt");
-		try (InputStream in = Files.newInputStream(file);
+		File inputFile = new File("schedulerInput.txt");
+		
+		if (returnVal == JFileChooser.APPROVE_OPTION) {
+			inputFile = fileChooser.getSelectedFile();
+		} else {
+			System.exit(0);
+		}
+		
+		Path input = inputFile.toPath();
+		try (InputStream in = Files.newInputStream(input);
 		    BufferedReader reader =
 		      new BufferedReader(new InputStreamReader(in))) {
 		    String line = null;
@@ -181,8 +191,23 @@ public class Scheduler {
 		}
 		
 		//Output Results
+		
 		System.out.println("Outputting...");
-		Path outputFile = Paths.get(System.getProperty("user.home"), "CourseScheduler", "output.txt");
+
+		fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+		
+		returnVal = fileChooser.showOpenDialog(fileChooser);
+		
+		Path outputFile = Paths.get(System.getProperty("user.home"));
+		
+		if (returnVal == JFileChooser.APPROVE_OPTION) {
+			outputFile = fileChooser.getSelectedFile().toPath();
+		} else {
+			System.exit(0);
+		}
+		
+		outputFile = Paths.get(outputFile.toString(), "schedulerOutput.txt");
+		
         if (!new File (outputFile.toString()).exists()) {
         	try {
         		Files.createFile(outputFile);
