@@ -25,6 +25,7 @@ public class Scheduler {
 		int currentSemester = 0;
 		int currentUnits = 0;
 		int semester = 0;
+		int initialSemester = 0;
 		
 		final JFileChooser fileChooser = new JFileChooser();
 		
@@ -91,7 +92,7 @@ public class Scheduler {
 			orderedList.add(c);
 		}
 		
-		
+		initialSemester = currentSemester;
 		
 		System.out.println("Scheduling...");
 		// Schedule Courses
@@ -101,15 +102,21 @@ public class Scheduler {
 		int dud = 0;
 		
 		List<Course> list = new ArrayList<Course>();
+		
+		for (i = 0; i < currentSemester; i++) {
+			resultLists.add(list);
+		}
+		
+		
 		resultLists.add(list);
 		list = new ArrayList<Course>();
 		resultLists.add(list);
 		
 		while (!orderedList.isEmpty() && currentUnits < requiredUnits) {
-			while(countUnits(resultLists.get(semester)) < 8) {
+			while(countUnits(resultLists.get(currentSemester)) < 8) {
 				courseAdded = false;
 				for (Course c: orderedList) {
-					System.out.println("Attempting to place " + c.toString() + " into semester" + semester);
+					System.out.println("Attempting to place " + c.toString() + " into semester" + currentSemester);
 					skip = false;
 					
 					// Check if course already scheduled
@@ -119,23 +126,23 @@ public class Scheduler {
 					
 					// Check that all pre reqs are scheduled before it
 					for (Course d: c.getPreReqs()) {
-						if (isInResultLists(resultLists, d) < 0 || isInResultLists(resultLists, d) >= semester) {
+						if (isInResultLists(resultLists, d) < 0 || isInResultLists(resultLists, d) >= currentSemester) {
 							skip = true;
 						}
 					}
 					
 					// Check that the course is offered in this semester
-					if (!c.getSem().contains((semester % 2))) {
+					if (!c.getSem().contains((currentSemester % 2))) {
 						skip = true;
 					}
 					
 					// Check that we're late enough in the program to take this course
-					if (semester < c.getLeastSem()) {
+					if (currentSemester < c.getLeastSem()) {
 						skip = true;
 					}
 					
 					// Check there's unit space left in the semester
-					if (c.getUnits() > 8 - countUnits(resultLists.get(semester))) {
+					if (c.getUnits() > 8 - countUnits(resultLists.get(currentSemester))) {
 						skip = true;
 					}
 					
@@ -145,20 +152,20 @@ public class Scheduler {
 					}
 					
 					// Check if there's space in the next semester (only matter if lots of 2 semester courses)
-					if (c.getLength() == 2 && countUnits(resultLists.get(semester + 1)) > 6) {
+					if (c.getLength() == 2 && countUnits(resultLists.get(currentSemester + 1)) > 6) {
 						skip = true;
 					}
 					
 					// Schedule the course in this semester if no flags are raised
 					if (!skip) {
-						resultLists.get(semester).add(c);
+						resultLists.get(currentSemester).add(c);
 						courseAdded = true;
 						currentUnits += c.getUnits();
 						if (c.getLength() == 2) {
-							resultLists.get(semester + 1).add(c);
+							resultLists.get(currentSemester + 1).add(c);
 							currentUnits += c.getUnits();
 						}
-						if (countUnits(resultLists.get(semester)) == 8) {
+						if (countUnits(resultLists.get(currentSemester)) == 8) {
 							//semester full
 							break;
 						}
@@ -173,7 +180,7 @@ public class Scheduler {
 					break;
 				}
 			}
-			if (resultLists.get(semester).size() == 0) {
+			if (resultLists.get(currentSemester).size() == 0) {
 				// No courses could fit into this semester, this can happen once, but twice means we're stuck
 				dud++;
 				if (dud == 2) {
@@ -184,7 +191,7 @@ public class Scheduler {
 				dud = 0;
 			}
 			// Go on to the next semester - create a new future list
-			semester++;
+			currentSemester++;
 			list = new ArrayList<Course>();
 			resultLists.add(list);
 			System.out.println("Current allocated units: " + currentUnits);
@@ -226,11 +233,11 @@ public class Scheduler {
 					continue;
 				}
 				
-				if (semester % 2 == currentSemester % 2) {
-					out.write("Year " + ((semester + currentSemester) / 2 + 1) + ":");
+				if (0 == (semester + initialSemester) % 2) {
+					out.write("Year " + ((semester + initialSemester) / 2 + 1) + ":");
 					out.newLine();
 				}
-				out.write("Semester " + ((semester + currentSemester) % 2 + 1) + ":");
+				out.write("Semester " + ((semester + initialSemester) % 2 + 1) + ":");
 				out.newLine();
 				for (Course c: list2) {
 					out.write("    " + c.toString());

@@ -34,6 +34,10 @@ public class Crawler {
 			// Dialog to input plan code
 			String plan = (String)JOptionPane.showInputDialog(new JFrame("Enter a program code"), "Please enter the desired program code.", "Enter a program code", JOptionPane.QUESTION_MESSAGE);
 			
+			if (plan == "") {
+				System.exit(1);
+			}
+			
 			System.out.println("Initializing...");
 			URL UQUrl = new URL("https://www.uq.edu.au/study/plan_display.html?acad_plan=" + plan);
 			
